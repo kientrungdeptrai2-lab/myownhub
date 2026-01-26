@@ -1,4 +1,4 @@
--- MONSTER HUB AUTO FARM V2
+-- MONSTER HUB GPO EDITION
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MonsterHub"
 ScreenGui.Parent = game:GetService("CoreGui")
@@ -27,30 +27,31 @@ FarmBtn.MouseButton1Click:Connect(function()
     FarmBtn.BackgroundColor3 = Farming and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(50, 50, 50)
 end)
 
--- VÒNG LẶP FARM TỐI ƯU CHO GPO
+-- VÒNG LẶP THỰC THI
 task.spawn(function()
     while true do
         task.wait(0.1)
         if Farming then
             pcall(function()
-                -- Quét cả workspace và các folder quái
-                for _, v in pairs(workspace:GetDescendants()) do 
-                    if not Farming then break end
-                    
-                    -- Kiểm tra: Phải có Humanoid, còn máu, và KHÔNG PHẢI Player
-                    if v:IsA("Humanoid") and v.Parent:IsA("Model") and v.Health > 0 then
+                -- Tìm kiếm NPC trong toàn bộ Workspace
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if Farming and v:IsA("Humanoid") and v.Health > 0 and v.Parent:IsA("Model") then
                         local npc = v.Parent
+                        -- Loại bỏ người chơi khỏi danh sách mục tiêu
                         if not game.Players:GetPlayerFromCharacter(npc) and npc:FindFirstChild("HumanoidRootPart") then
-                            -- Dịch chuyển ra phía sau NPC 3 studs để tránh bị đánh
-                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                             
-                            -- Tự động đánh liên tục
-                            local vim = game:GetService("VirtualInputManager")
-                            vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                            vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                            
-                            -- Đợi quái chết hoặc Farming bị tắt
-                            repeat task.wait() until v.Health <= 0 or not Farming
+                            -- Vòng lặp tấn công con quái hiện tại cho đến khi nó chết
+                            while Farming and v.Health > 0 do
+                                -- Dịch chuyển ra sau lưng NPC
+                                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                                
+                                -- Giả lập Click chuột liên tục
+                                local vim = game:GetService("VirtualInputManager")
+                                vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                                vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                                
+                                task.wait(0.1) -- Tốc độ đánh
+                            end
                         end
                     end
                 end
