@@ -21,57 +21,52 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
 Title.TextSize = 18
 
--- 2. CHỨC NĂNG TĂNG TỐC (WALKSPEED)
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Name = "SpeedBtn"
-SpeedBtn.Parent = MainFrame
-SpeedBtn.Size = UDim2.new(0, 260, 0, 40)
-SpeedBtn.Position = UDim2.new(0, 20, 0, 50)
-SpeedBtn.Text = "Tang Toc (Speed 100)"
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
+-- 1. CHỨC NĂNG TĂNG TỐC (SPEED TOGGLE)
+local SpeedToggle = false
 SpeedBtn.MouseButton1Click:Connect(function()
-    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
-    print("Kich hoat Speed!")
+    SpeedToggle = not SpeedToggle -- Đảo trạng thái mỗi khi bấm
+    if SpeedToggle then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+        SpeedBtn.Text = "Speed: BAT (100)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- Màu xanh khi bật
+    else
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Tốc độ mặc định
+        SpeedBtn.Text = "Speed: TAT"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Màu xám khi tắt
+    end
 end)
 
--- 3. CHỨC NĂNG AUTO FARM (TP + CLICK)
-local FarmBtn = Instance.new("TextButton")
-FarmBtn.Parent = MainFrame
-FarmBtn.Size = UDim2.new(0, 260, 0, 40)
-FarmBtn.Position = UDim2.new(0, 20, 0, 100)
-FarmBtn.Text = "Auto Farm NPC: TAT"
-FarmBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-FarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
+-- 2. CHỨC NĂNG AUTO FARM (AUTO FARM TOGGLE)
 local Farming = false
 FarmBtn.MouseButton1Click:Connect(function()
     Farming = not Farming
-    FarmBtn.Text = Farming and "Auto Farm NPC: BAT" or "Auto Farm NPC: TAT"
-    FarmBtn.BackgroundColor3 = Farming and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(50, 50, 50)
+    if Farming then
+        FarmBtn.Text = "Auto Farm NPC: BAT"
+        FarmBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Màu đỏ khi đang farm
+    else
+        FarmBtn.Text = "Auto Farm NPC: TAT"
+        FarmBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end
     
+    -- Vòng lặp chỉ chạy khi Farming = true
     task.spawn(function()
         while Farming do
-            -- Tìm quái gần nhất trong Workspace
-            for _, v in pairs(workspace:GetChildren()) do
-                if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") then
-                    if v.Humanoid.Health > 0 and v.Name ~= game.Players.LocalPlayer.Name then
-                        -- Dịch chuyển ra sau lưng NPC 3 studs
-                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        
-                        -- Gửi lệnh Click ảo để đánh
-                        local vim = game:GetService("VirtualInputManager")
-                        vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                        
-                        task.wait(0.1)
+            pcall(function() -- Dùng pcall để tránh lỗi khi quái chết
+                for _, v in pairs(workspace:GetChildren()) do
+                    if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") then
+                        if v.Humanoid.Health > 0 and v.Name ~= game.Players.LocalPlayer.Name then
+                            -- Chỉ dịch chuyển và đánh nếu Farming vẫn đang bật
+                            if not Farming then break end 
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            
+                            local vim = game:GetService("VirtualInputManager")
+                            vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                            vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                        end
                     end
                 end
-            end
-            task.wait()
+            end)
+            task.wait(0.1)
         end
     end)
 end)
-
-print("Monster Hub Loaded Successfully!")
