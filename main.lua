@@ -1,5 +1,6 @@
 --==================================================
--- MONSTER HUB - FULL FIXED VERSION
+-- MONSTER HUB - FULL VERSION
+-- Auto Farm + Hitbox + Bring Mob
 --==================================================
 
 -- SERVICES
@@ -8,30 +9,22 @@ local VirtualInput = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 
 --==================================================
--- GUI SETUP (KHÔNG DÙNG COREGUI)
+-- GUI
 --==================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MonsterHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
---==================================================
--- MAIN FRAME
---==================================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 450, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 360, 0, 200)
+MainFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
 MainFrame.Draggable = true
-
--- BO GÓC
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
---==================================================
--- TITLE
---==================================================
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 30)
@@ -39,21 +32,15 @@ Title.Text = "MONSTER HUB"
 Title.TextColor3 = Color3.new(1,1,1)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+Title.TextSize = 14
 
---==================================================
--- CONTENT FRAME
---==================================================
-local ContentFrame = Instance.new("ScrollingFrame")
-ContentFrame.Parent = MainFrame
-ContentFrame.Position = UDim2.new(0, 120, 0, 35)
-ContentFrame.Size = UDim2.new(0, 320, 1, -45)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.ScrollBarImageTransparency = 0.5
-ContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ContentFrame.CanvasSize = UDim2.new()
+local Content = Instance.new("Frame")
+Content.Parent = MainFrame
+Content.Position = UDim2.new(0, 10, 0, 40)
+Content.Size = UDim2.new(1, -20, 1, -50)
+Content.BackgroundTransparency = 1
 
-local UIList = Instance.new("UIListLayout", ContentFrame)
+local UIList = Instance.new("UIListLayout", Content)
 UIList.Padding = UDim.new(0, 10)
 
 --==================================================
@@ -62,10 +49,8 @@ UIList.Padding = UDim.new(0, 10)
 local function getCharacter()
     local char = LocalPlayer.Character
     if not char then return end
-
     local hum = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
-
     if hum and hrp and hum.Health > 0 then
         return char, hum, hrp
     end
@@ -73,46 +58,59 @@ end
 
 local function createButton(text)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Size = UDim2.new(1, 0, 0, 40)
     btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 14
-    btn.Parent = ContentFrame
-
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Parent = Content
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     return btn
 end
 
 --==================================================
--- SPEED BUTTON
+-- SPEED
 --==================================================
 local SpeedBtn = createButton("Speed: 100")
-
 SpeedBtn.MouseButton1Click:Connect(function()
     local _, hum = getCharacter()
-    if hum then
-        hum.WalkSpeed = 100
-    end
+    if hum then hum.WalkSpeed = 100 end
 end)
 
 --==================================================
--- AUTO FARM
+-- HITBOX + BRING MOB
 --==================================================
-local FarmBtn = createButton("Auto Farm NPC: OFF")
-local Farming = false
+local HITBOX_SIZE = 25
+
+local function expandHitbox(npc)
+    local hrp = npc:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.Size = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
+    hrp.Transparency = 0.7
+    hrp.CanCollide = false
+end
+
+local function bringMob(npc, playerHrp)
+    local nHrp = npc:FindFirstChild("HumanoidRootPart")
+    local hum = npc:FindFirstChildOfClass("Humanoid")
+    if not nHrp or not hum then return end
+
+    hum.WalkSpeed = 0
+    hum.JumpPower = 0
+    hum.AutoRotate = false
+
+    nHrp.CFrame = playerHrp.CFrame * CFrame.new(0, 0, -4)
+end
 
 local function getNearestNPC(hrp)
     local nearest, dist = nil, math.huge
-
     for _, v in ipairs(workspace:GetDescendants()) do
         if v:IsA("Model")
         and v:FindFirstChild("Humanoid")
         and v:FindFirstChild("HumanoidRootPart")
         and v.Humanoid.Health > 0
         and not Players:GetPlayerFromCharacter(v) then
-
             local d = (v.HumanoidRootPart.Position - hrp.Position).Magnitude
             if d < dist then
                 dist = d
@@ -120,9 +118,14 @@ local function getNearestNPC(hrp)
             end
         end
     end
-
     return nearest
 end
+
+--==================================================
+-- AUTO FARM
+--==================================================
+local FarmBtn = createButton("Auto Farm NPC: OFF")
+local Farming = false
 
 FarmBtn.MouseButton1Click:Connect(function()
     Farming = not Farming
@@ -143,9 +146,10 @@ FarmBtn.MouseButton1Click:Connect(function()
 
             local npc = getNearestNPC(hrp)
             if npc then
-                hrp.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                expandHitbox(npc)
+                bringMob(npc, hrp)
 
-                -- CLICK ATTACK
+                -- AUTO CLICK
                 VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                 task.wait(0.05)
                 VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
@@ -156,7 +160,5 @@ FarmBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
---==================================================
--- DONE
 --==================================================
 print("[Monster Hub] Loaded successfully!")
