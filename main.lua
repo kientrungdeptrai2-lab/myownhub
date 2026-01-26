@@ -1,4 +1,4 @@
--- MONSTER HUB FIX TARGETING
+-- MONSTER HUB AUTO FARM V2
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MonsterHub"
 ScreenGui.Parent = game:GetService("CoreGui")
@@ -13,7 +13,6 @@ MainFrame.Draggable = true
 
 local Farming = false
 
--- PHẦN NUT BẤM AUTO FARM
 local FarmBtn = Instance.new("TextButton")
 FarmBtn.Parent = MainFrame
 FarmBtn.Size = UDim2.new(0, 260, 0, 40)
@@ -28,21 +27,30 @@ FarmBtn.MouseButton1Click:Connect(function()
     FarmBtn.BackgroundColor3 = Farming and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(50, 50, 50)
 end)
 
--- VÒNG LẶP KIỂM TRA MỤC TIÊU
+-- VÒNG LẶP FARM TỐI ƯU CHO GPO
 task.spawn(function()
     while true do
         task.wait(0.1)
         if Farming then
             pcall(function()
-                for _, v in pairs(workspace:GetChildren()) do
+                -- Quét cả workspace và các folder quái
+                for _, v in pairs(workspace:GetDescendants()) do 
                     if not Farming then break end
-                    -- ĐIỀU KIỆN QUAN TRỌNG: Phải là Model, có Humanoid, Máu > 0 và KHÔNG PHẢI Player
-                    if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        if not game.Players:GetPlayerFromCharacter(v) then -- Kiểm tra xem Model có phải là Player không
-                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    
+                    -- Kiểm tra: Phải có Humanoid, còn máu, và KHÔNG PHẢI Player
+                    if v:IsA("Humanoid") and v.Parent:IsA("Model") and v.Health > 0 then
+                        local npc = v.Parent
+                        if not game.Players:GetPlayerFromCharacter(npc) and npc:FindFirstChild("HumanoidRootPart") then
+                            -- Dịch chuyển ra phía sau NPC 3 studs để tránh bị đánh
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            
+                            -- Tự động đánh liên tục
                             local vim = game:GetService("VirtualInputManager")
                             vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                             vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                            
+                            -- Đợi quái chết hoặc Farming bị tắt
+                            repeat task.wait() until v.Health <= 0 or not Farming
                         end
                     end
                 end
